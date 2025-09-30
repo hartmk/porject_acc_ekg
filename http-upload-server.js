@@ -4,9 +4,8 @@ const path = require('path');
 const fs = require('fs');
 
 // Create HTTP upload server as FTP alternative
-const createUploadServer = (PATH_IN) => {
+const createUploadServer = (PATH_IN, UPLOAD_PORT = 3002) => {
   const uploadApp = express();
-  const UPLOAD_PORT = process.env.UPLOAD_PORT || 3001;
   
   // Configure multer for file uploads
   const storage = multer.diskStorage({

@@ -10,7 +10,7 @@ const { createUploadServer } = require('./http-upload-server');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Environment variables
 const PATH_IN = process.env.PATH_IN || './input';
@@ -57,13 +57,10 @@ const sendImageToLine = async (imagePath) => {
     
     console.log(`Processing file: ${fileName} (${fileSizeInMB.toFixed(2)} MB)`);
 
-    // Try to upload image to cloud service
-    ///const imageUrl = await uploadImage(imagePath);
+    // Upload image (mock)
     const imageUrl = 'https://www.autoshippers.co.uk/blog/wp-content/uploads/bugatti-centodieci.jpg';
     
-    
     if (imageUrl) {
-      // Send image message with the uploaded URL
       const imageMessage = {
         to: USER_ID,
         messages: [
@@ -89,9 +86,7 @@ const sendImageToLine = async (imagePath) => {
       console.log('🎉 Image sent to LINE successfully:', response.status);
       
     } else {
-      // Fallback: Send text message only if upload failed
       console.log('Image upload failed, sending text notification only');
-      
       const fallbackMessage = {
         to: USER_ID,
         messages: [
@@ -114,8 +109,6 @@ const sendImageToLine = async (imagePath) => {
     
   } catch (error) {
     console.error('Error in sendImageToLine:', error.response?.data || error.message);
-    
-    // Final fallback: Send simple text message
     try {
       const simpleMessage = {
         to: USER_ID,
@@ -143,7 +136,7 @@ const sendImageToLine = async (imagePath) => {
 
 // File watcher
 const watcher = chokidar.watch(PATH_IN, {
-  ignored: /^\./, // ignore dotfiles
+  ignored: /^\./,
   persistent: true,
   ignoreInitial: true
 });
@@ -152,22 +145,15 @@ const watcher = chokidar.watch(PATH_IN, {
 watcher.on('add', async (filePath) => {
   try {
     console.log(`New file detected: ${filePath}`);
-    
-    // Generate new filename
     const originalFilename = path.basename(filePath);
     const newFilename = generateNewFilename(originalFilename);
     const newFilePath = path.join(PATH_OUT, newFilename);
-    
-    // Move and rename file
     fs.renameSync(filePath, newFilePath);
     console.log(`File moved and renamed: ${originalFilename} -> ${newFilename}`);
-    
-    // Send to LINE if it's an image
     const ext = path.extname(newFilename).toLowerCase();
     if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
       await sendImageToLine(newFilePath);
     }
-    
   } catch (error) {
     console.error('Error processing file:', error);
   }
@@ -187,12 +173,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Serve images for LINE
+// Serve images
 app.get('/images/:filename', (req, res) => {
   try {
     const filename = req.params.filename;
     const filePath = path.join(PATH_OUT, filename);
-    
     if (fs.existsSync(filePath)) {
       res.sendFile(path.resolve(filePath));
     } else {
@@ -203,7 +188,7 @@ app.get('/images/:filename', (req, res) => {
   }
 });
 
-// Get file list
+// Get file lists
 app.get('/api/files/input', (req, res) => {
   try {
     const files = fs.readdirSync(PATH_IN);
@@ -212,7 +197,6 @@ app.get('/api/files/input', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 app.get('/api/files/output', (req, res) => {
   try {
     const files = fs.readdirSync(PATH_OUT);
@@ -222,7 +206,50 @@ app.get('/api/files/output', (req, res) => {
   }
 });
 
-// Start HTTP Upload Server (replaces FTP Server)
+// --- New Patient Data API ---
+
+const mockWorklist = {
+  rec: "200",
+  worklist: [
+    {
+      Birth: "2018-02-26",
+      Gender: "M",
+      Name: "zhangsan",
+      PatientID: "1130300100103738",
+      Departments: "dept1",
+      bedNum: "bed4",
+    },
+  ],
+};
+
+// GET /selectALL1000 - ส่ง worklist ทั้งหมด
+app.get('/selectALL1000', (req, res) => {
+  try {
+    res.status(200).json(mockWorklist);
+  } catch (error) {
+    res.status(400).json({ rec: 400, error: 'For failure', message: error.message });
+  }
+});
+
+// GET /selectAll?pid=... - ส่งเฉพาะคนที่ค้นหาเจอ
+app.get('/selectAll', (req, res) => {
+  try {
+    const { pid } = req.query;
+    if (!pid) {
+      return res.status(400).json({ rec: 400, error: 'For failure', message: 'PatientID (pid) is required.' });
+    }
+    const patient = mockWorklist.worklist.find(p => p.PatientID === pid);
+    if (patient) {
+      res.status(200).json({ rec: "200", worklist: [patient] });
+    } else {
+      res.status(404).json({ rec: 404, error: 'For failure', message: `Patient with ID ${pid} not found.` });
+    }
+  } catch (error) {
+    res.status(400).json({ rec: 400, error: 'For failure', message: error.message });
+  }
+});
+
+// Start HTTP Upload Server
 const uploadServer = createUploadServer(PATH_IN);
 
 // Start server
@@ -234,13 +261,10 @@ app.listen(PORT, () => {
   console.log(`User ID configured: ${!!USER_ID}`);
 });
 
-// Handle graceful shutdown
+// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down services...');
-  console.log('Closing file watcher...');
   watcher.close();
-  
-  console.log('Closing upload server...');
   uploadServer.close(() => {
     console.log('Upload server closed');
     process.exit(0);
