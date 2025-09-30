@@ -1,0 +1,32 @@
+{
+  "name": "file-monitor-line-notifier",
+  "version": "1.0.0",
+  "description": "File monitoring service that renames files and sends them via LINE messaging API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chokidar": "^3.5.3",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "form-data": "^4.0.0",
+    "moment": "^2.29.4",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "ftp": "^0.3.10",
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "file-monitoring",
+    "line-messaging",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT"
+}
