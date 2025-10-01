@@ -159,6 +159,11 @@ watcher.on('add', async (filePath) => {
   }
 });
 
+const mysql = require('mysql2/promise');
+
+
+
+
 // API Routes
 app.get('/', (req, res) => {
   res.json({
@@ -208,19 +213,90 @@ app.get('/api/files/output', (req, res) => {
 
 // --- New Patient Data API ---
 
-const mockWorklist = {
-  rec: "200",
-  worklist: [
-    {
-      Birth: "2018-02-26",
-      Gender: "M",
-      Name: "zhangsan",
-      PatientID: "1130300100103738",
-      Departments: "dept1",
-      bedNum: "bed4",
-    },
-  ],
-};
+const pool = require('./db');
+
+// GET /selectALL1000
+app.get('/selectALL1000', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+SELECT 
+        CONCAT(pname, fname, ' ', lname) AS Name,
+        Birthday,
+        TIMESTAMPDIFF(YEAR, birthday, CURDATE()) AS Age,
+        CASE 
+          WHEN sex = 1 THEN 'M'
+          WHEN sex = 2 THEN 'F'
+          ELSE ''
+        END AS Gender,
+        hn AS PatientID,
+        '-' AS Departments,
+        '-' AS bedNum
+      FROM patient
+    `);
+
+    res.status(200).json({
+      rec: "200",
+      worklist: rows
+    });
+
+  } catch (error) {
+    res.status(400).json({
+      rec: 400,
+      error: 'For failure',
+      message: error.message
+    });
+  }
+});
+
+
+// GET /selectAll?pid=...
+app.get('/selectAll', async (req, res) => {
+  try {
+    const { pid } = req.query;
+    if (!pid) {
+      return res.status(400).json({ 
+        rec: 400, 
+        error: 'For failure', 
+        message: 'PatientID (pid) is required.' 
+      });
+    }
+
+    const [rows] = await pool.query(`
+SELECT 
+        CONCAT(pname, fname, ' ', lname) AS Name,
+        Birthday,
+        TIMESTAMPDIFF(YEAR, birthday, CURDATE()) AS Age,
+        CASE 
+          WHEN sex = 1 THEN 'M'
+          WHEN sex = 2 THEN 'F'
+          ELSE ''
+        END AS Gender,
+        hn AS PatientID,
+        '-' AS Departments,
+        '-' AS bedNum
+      FROM patient
+      WHERE hn = ?
+    `, [pid]);
+
+    if (rows.length > 0) {
+      res.status(200).json({ rec: "200", worklist: rows });
+    } else {
+      res.status(404).json({ 
+        rec: 404, 
+        error: 'For failure', 
+        message: `Patient with ID ${pid} not found.` 
+      });
+    }
+  } catch (error) {
+    res.status(400).json({ 
+      rec: 400, 
+      error: 'For failure', 
+      message: error.message 
+    });
+  }
+});
+
+
 
 // GET /selectALL1000 - ส่ง worklist ทั้งหมด
 app.get('/selectALL1000', (req, res) => {
@@ -250,8 +326,8 @@ app.get('/selectAll', (req, res) => {
 });
 
 // Start HTTP Upload Server
-const uploadServer = createUploadServer(PATH_IN);
-
+// const uploadServer = createUploadServer(PATH_IN);
+const uploadServer = createUploadServer(PATH_IN, 3003);
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
