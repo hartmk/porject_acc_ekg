@@ -58,6 +58,7 @@ async function uploadImageToImgbb(imagePath, apiKey) {
       base64 : imageData,
     },
   });
+  console.log(response.path)
   return response.path;
 }
 
