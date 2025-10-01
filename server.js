@@ -52,14 +52,17 @@ const generateNewFilename = (originalFilename) => {
 
 // Function to send image to LINE using cloud image hosting
 async function uploadImageToImgbb(imagePath, apiKey) {
-  const imageData = fs.readFileSync(imagePath, { encoding: "base64" });
-  const response = await axios.post("https://swpallonline.com/api/imagelink/imagelink.php", null, {
-    params: {
-      base64 : imageData,
-    },
-  });
-  console.log(response.path)
-  return response.path;
+  try {
+    const imageData = fs.readFileSync(imagePath, { encoding: "base64" });
+    const response = await axios.post("https://swpallonline.com/api/imagelink/imagelink.php", {
+      base64: imageData,
+    });
+    console.log('image URL response:', response.data.path);
+    return response.data.path;
+  } catch (error) {
+    console.error("Error uploading image to imgbb:", error);
+    throw error;
+  }
 }
 
 const sendImageToLine = async (imagePath) => {
@@ -80,7 +83,7 @@ const sendImageToLine = async (imagePath) => {
         messages: [
           {
             type: "text",
-            text: `🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: 0 MB\n⏰ Time: ${moment().format(
+            text: `11111 🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: 0 MB\n⏰ Time: ${moment().format(
               "YYYY-MM-DD HH:mm:ss"
             )}\n💾 File saved to output folder\n\n⚠️ Unable to upload image for preview (file is empty)`,
           },
@@ -98,16 +101,18 @@ const sendImageToLine = async (imagePath) => {
       );
       return;
     }
+
     const imgbbApiKey = "33ff798f15afda8db266382ac8c866bd"; // ใส่ API key ที่ได้จาก imgbb
+    console.log("Uploading image to imgbb...");
     const imageUrl = await uploadImageToImgbb(imagePath, imgbbApiKey);
-    console.log("imgbb imageUrl:", imageUrl);
+    console.log("Image uploaded to imgbb:", imageUrl);
     if (imageUrl) {
       const imageMessage = {
         to: USER_ID,
         messages: [
           {
             type: "text",
-            text: `🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: ${fileSizeInMB.toFixed(
+            text: `222222 🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: ${fileSizeInMB.toFixed(
               2
             )} MB\n⏰ Time: ${moment().format("YYYY-MM-DD HH:mm:ss")}`,
           },
@@ -138,7 +143,7 @@ const sendImageToLine = async (imagePath) => {
         messages: [
           {
             type: "text",
-            text: `🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: ${fileSizeInMB.toFixed(
+            text: `333333 🏥 New EKG file processed!\n📁 File: ${fileName}\n📏 Size: ${fileSizeInMB.toFixed(
               2
             )} MB\n⏰ Time: ${moment().format(
               "YYYY-MM-DD HH:mm:ss"
@@ -171,7 +176,7 @@ const sendImageToLine = async (imagePath) => {
         messages: [
           {
             type: "text",
-            text: `🏥 EKG file processed: ${path.basename(
+            text: `44444 🏥 EKG file processed: ${path.basename(
               imagePath
             )}\n⏰ ${moment().format("YYYY-MM-DD HH:mm:ss")}`,
           },
