@@ -220,18 +220,21 @@ app.get('/selectALL1000', async (req, res) => {
   try {
     const [rows] = await pool.query(`
 SELECT 
-        CONCAT(pname, fname, ' ', lname) AS Name,
-        Birthday,
-        TIMESTAMPDIFF(YEAR, birthday, CURDATE()) AS Age,
-        CASE 
-          WHEN sex = 1 THEN 'M'
-          WHEN sex = 2 THEN 'F'
-          ELSE ''
-        END AS Gender,
-        hn AS PatientID,
-        '-' AS Departments,
-        '-' AS bedNum
-      FROM patient
+    CONCAT(pname, fname, ' ', lname) AS Name,
+    patient.birthday AS Birth,
+    TIMESTAMPDIFF(YEAR, patient.birthday, CURDATE()) AS Age,
+    CASE 
+      WHEN sex = 1 THEN 'M'
+      WHEN sex = 2 THEN 'F'
+      ELSE ''
+    END AS Gender,
+    patient.hn AS PatientID,
+    '-' AS Departments,
+    '-' AS bedNum
+FROM patient
+LEFT JOIN ovst 
+    ON patient.hn = ovst.hn
+WHERE ovst.vstdate = CURDATE();
     `);
 
     res.status(200).json({
@@ -263,19 +266,22 @@ app.get('/selectAll', async (req, res) => {
 
     const [rows] = await pool.query(`
 SELECT 
-        CONCAT(pname, fname, ' ', lname) AS Name,
-        Birthday,
-        TIMESTAMPDIFF(YEAR, birthday, CURDATE()) AS Age,
-        CASE 
-          WHEN sex = 1 THEN 'M'
-          WHEN sex = 2 THEN 'F'
-          ELSE ''
-        END AS Gender,
-        hn AS PatientID,
-        '-' AS Departments,
-        '-' AS bedNum
-      FROM patient
-      WHERE hn = ?
+    CONCAT(pname, fname, ' ', lname) AS Name,
+    patient.birthday AS Birth,
+    TIMESTAMPDIFF(YEAR, patient.birthday, CURDATE()) AS Age,
+    CASE 
+      WHEN sex = 1 THEN 'M'
+      WHEN sex = 2 THEN 'F'
+      ELSE ''
+    END AS Gender,
+    patient.hn AS PatientID,
+    '-' AS Departments,
+    '-' AS bedNum
+FROM patient
+LEFT JOIN ovst 
+    ON patient.hn = ovst.hn
+WHERE ovst.vstdate = CURDATE()
+  AND patient.hn = ?;
     `, [pid]);
 
     if (rows.length > 0) {
